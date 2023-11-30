@@ -837,7 +837,7 @@ struct wav_header {
 	/* Data */
 	char data_header[4];
 	uint32_t data_bytes; /* Number of bytes in data */
-} __packed; // 48 bytes
+} __packed; // 44 bytes
 
 static struct wav_header wav_file_header;
 
@@ -849,7 +849,7 @@ static int write_wav_header(uint32_t size)
 	wav_file_header.riff_header[1] = 'I';
 	wav_file_header.riff_header[2] = 'F';
 	wav_file_header.riff_header[3] = 'F';
-	wav_file_header.wav_size = size + sizeof(wav_file_header);
+	wav_file_header.wav_size = size + 0x24;
 	wav_file_header.wav_header[0] = 'W';
 	wav_file_header.wav_header[1] = 'A';
 	wav_file_header.wav_header[2] = 'V';
@@ -861,7 +861,7 @@ static int write_wav_header(uint32_t size)
 	wav_file_header.wav_chunk_size = 16;
 	wav_file_header.audio_format = WAV_FORMAT_PCM;
 	wav_file_header.num_channels = 1;
-	wav_file_header.sample_rate = CONFIG_AUDIO_SAMPLE_RATE_HZ;
+	wav_file_header.sample_rate = CONFIG_AUDIO_SAMPLE_RATE_HZ * 2;  // bugbug: somehow the lc3 decoded data is returning twice as much data as expected...?
 	wav_file_header.byte_rate = CONFIG_AUDIO_SAMPLE_RATE_HZ * CONFIG_AUDIO_BIT_DEPTH_OCTETS;
 	wav_file_header.block_alignment = 2;
 	wav_file_header.bit_depth = CONFIG_AUDIO_BIT_DEPTH_BITS;
@@ -884,6 +884,7 @@ static int write_wav_header(uint32_t size)
 
 	// seek back to where we were.
 	fs_seek(&wav_file, position, FS_SEEK_SET);
+	return ret;
 }
 
 struct save_wave_msg
@@ -920,7 +921,7 @@ static void save_wav_task(void)
 					
 				if (pcm_data_duration == 0) {
 					// close the file!
-					write_wav_header(wav_file_bytes);
+					// write_wav_header(wav_file_bytes);
 					sd_card_close(&wav_file);
 					wav_file_open = false;
 					LOG_INF("Saved %d bytes to wav file.", wav_file_bytes);
@@ -992,7 +993,7 @@ int audio_datapath_save_wav(const char* filename, uint32_t duration_seconds)
 		return err;
 	} else{
 		wav_file_open = true;
-		write_wav_header(0);
+		write_wav_header(320000); // hard coded header because fs_seek doesn't seem to be working.
 	}
 	return 0;
 }
