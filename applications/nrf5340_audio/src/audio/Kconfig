@@ -47,7 +47,7 @@ choice AUDIO_SAMPLE_RATE
 	prompt "Audio sample rate"
 	default AUDIO_SAMPLE_RATE_16000_HZ if BT_BAP_BROADCAST_16_2_1 || BT_BAP_BROADCAST_16_2_2 || BT_BAP_UNICAST_16_2_1
 	default AUDIO_SAMPLE_RATE_24000_HZ if BT_BAP_BROADCAST_24_2_1 || BT_BAP_BROADCAST_24_2_2 || BT_BAP_UNICAST_24_2_1
-	default AUDIO_SAMPLE_RATE_48000_HZ
+	default AUDIO_SAMPLE_RATE_16000_HZ
 	help
 	  This will be selected based on the BAP settings.
 
@@ -121,15 +121,15 @@ config AUDIO_MAX_PRES_DLY_US
 choice AUDIO_SOURCE_GATEWAY
 	prompt "Audio source for gateway"
 	default AUDIO_SOURCE_I2S if WALKIE_TALKIE_DEMO
-	default AUDIO_SOURCE_USB
+	# default AUDIO_SOURCE_USB
 	help
 	  Select audio source for the gateway.
 
-config AUDIO_SOURCE_USB
-	bool "Use USB as audio source"
-	help
-	  Set USB as audio source. Note that this forces the
-	  stream to be unidirectional because of CPU load.
+# config AUDIO_SOURCE_USB
+# 	bool "Use USB as audio source"
+# 	help
+# 	  Set USB as audio source. Note that this forces the
+# 	  stream to be unidirectional because of CPU load.
 
 config AUDIO_SOURCE_I2S
 	bool "Use I2S as audio source"
@@ -169,6 +169,12 @@ config AUDIO_MUTE
 	help
 	  Use button 5 to mute audio instead of
 	  doing a user defined action.
+
+config AUDIO_SAVE_WAV
+	bool "Save a 10 second wav file instead of mute"
+	default y
+	help
+	  Use button 5 to save a wav file.
 
 if AUDIO_HEADSET_CHANNEL_COMPILE_TIME
 
@@ -351,7 +357,7 @@ config AUDIO_DATAPATH_STACK_SIZE
 
 config BUTTON_MSG_SUB_STACK_SIZE
 	int "Stack size for button subscriber"
-	default 2048
+	default 3048
 
 config LE_AUDIO_MSG_SUB_STACK_SIZE
 	int "Stack size for LE Audio subscriber"

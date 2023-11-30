@@ -13,6 +13,7 @@
 #include "button_assignments.h"
 #include "macros_common.h"
 #include "audio_system.h"
+#include "audio_datapath.h"
 #include "button_handler.h"
 #include "le_audio.h"
 #include "bt_mgmt.h"
@@ -186,7 +187,6 @@ static void button_msg_sub_thread(void)
 
 				break;
 			}
-
 			break;
 
 		default:

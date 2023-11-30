@@ -72,7 +72,7 @@ int sd_card_open_read_close(char const *const filename, char *const buf, size_t 
  * @brief	Open file on SD card.
  *
  * @param[in]		filename		Name of file to open. Default
- *						location is the root directoy of SD card.
+ *						location is the root directory of SD card.
  *						Absolute path under root of SD card is accepted.
  * @param[in, out]	f_seg_read_entry	Pointer to a file object.
  *						The pointer gets initialized and ready for use.
@@ -84,6 +84,23 @@ int sd_card_open_read_close(char const *const filename, char *const buf, size_t 
  * @retval	Otherwise, error from underlying drivers.
  */
 int sd_card_open(char const *const filename, struct fs_file_t *f_seg_read_entry);
+
+/**
+ * @brief	Open file on SD card for writing new file.
+ *
+ * @param[in]		filename		Name of file to create. Default
+ *						location is the root directory of SD card.
+ *						Absolute path under root of SD card is accepted.
+ * @param[in, out]	f_seg_write_entry	Pointer to a file object.
+ *						The pointer gets initialized and ready for use.
+ *
+ *
+ * @retval	0 on success.
+ * @retval	-EPERM SD card operation is ongoing somewhere else.
+ * @retval	-ENODEV SD init failed. SD likely not inserted.
+ * @retval	Otherwise, error from underlying drivers.
+ */
+int sd_card_open_for_write(char const *const filename, struct fs_file_t *f_seg_write_entry);
 
 /**
  * @brief	Read segment on the open file on the SD card.
@@ -104,6 +121,23 @@ int sd_card_open(char const *const filename, struct fs_file_t *f_seg_read_entry)
  * @retval	Otherwise, error from underlying drivers.
  */
 int sd_card_read(char *buf, size_t *size, struct fs_file_t *f_seg_read_entry);
+
+
+/**
+ * @brief	Write segment on the open file on the SD card.
+ *
+ * @param[out]		buf			Pointer to the buffer to write.
+ * @param[in, out]	size			Number of bytes to be written to file.
+ * @param[in, out]	f_seg_read_entry	Pointer to a file object. After call to this
+ *						function, the pointer gets updated and can be used
+ *						as entry in next function call.
+ *
+ * @retval	0 on success.
+ * @retval	-EPERM SD card operation is not ongoing.
+ * @retval	-ENODEV SD init failed. SD likely not inserted.
+ * @retval	Otherwise, error from underlying drivers.
+ */
+int sd_card_write(const char *buf, size_t size, struct fs_file_t *f_seg_read_entry);
 
 /**
  * @brief	Close the file opened by the sd_card_segment_read_open function.

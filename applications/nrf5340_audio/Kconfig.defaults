@@ -11,7 +11,7 @@ config MAIN_THREAD_PRIORITY
 	default 10
 
 config MAIN_STACK_SIZE
-	default 1600
+	default 2800
 
 config SYSTEM_WORKQUEUE_STACK_SIZE
 	default 1200
@@ -146,7 +146,19 @@ config BT_LL_ACS_NRF53
 	default y
 
 config WATCHDOG
-	default y
+	default n
 
 config TASK_WDT
 	default y
+
+config AUDIO_MUTE
+	default n
+
+config AUDIO_SAVE_WAV
+	default y
+
+config AUDIO_SAVE_WAV
+	default y
+
+config WDT_CTLR
+	default n
