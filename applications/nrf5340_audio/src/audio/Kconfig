@@ -302,6 +302,10 @@ module = LE_AUDIO_RX
 module-str = le-audio-rx
 source "subsys/logging/Kconfig.template.log_config"
 
+module = WAV_FILE
+module-str = audio-system
+source "subsys/logging/Kconfig.template.log_config"
+
 endmenu # Log levels
 
 #----------------------------------------------------------------------------#

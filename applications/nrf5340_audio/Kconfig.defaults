@@ -157,8 +157,5 @@ config AUDIO_MUTE
 config AUDIO_SAVE_WAV
 	default y
 
-config AUDIO_SAVE_WAV
-	default y
-
 config WDT_CTLR
 	default n
