@@ -256,7 +256,7 @@ static int zbus_link_producers_observers(void)
 {
 	int ret;
 
-	if (!IS_ENABLED(CONFIG_ZBUS) || (CONFIG_ZBUS_RUNTIME_OBSERVERS_POOL_SIZE <= 0)) {
+	if (!IS_ENABLED(CONFIG_ZBUS)) {
 		return -ENOTSUP;
 	}
 

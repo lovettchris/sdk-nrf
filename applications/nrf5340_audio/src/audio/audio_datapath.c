@@ -26,6 +26,8 @@
 #include "streamctrl.h"
 #include "sd_card.h"
 #include "wav_file.h"
+#include "audio_sync_timer.h"
+#include "sd_card_playback.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(audio_datapath, CONFIG_AUDIO_DATAPATH_LOG_LEVEL);
@@ -160,6 +162,42 @@ static bool tone_active;
 static uint16_t test_tone_buf[CONFIG_AUDIO_SAMPLE_RATE_HZ / 100];
 static size_t test_tone_size;
 
+/**
+ * @brief	Calculate error between sdu_ref and frame_start_ts.
+ *
+ * @note	Used to adjust audio clock to account for drift.
+ *
+ * @param	sdu_ref_us	Timestamp for sdu.
+ * @param	frame_start_ts	Timestamp for I2S.
+ *
+ * @return	err_us	Error in microseconds.
+ */
+static int32_t err_us_calculate(uint32_t sdu_ref_us, uint32_t frame_start_ts)
+{
+	bool err_neg = false;
+	int64_t total_err = (sdu_ref_us - frame_start_ts);
+
+	/* Store sign for later use, since remainder operation is undefined for negatives */
+	if (total_err < 0) {
+		err_neg = true;
+		total_err *= -1;
+	}
+
+	/* Check diff below 1000 us, diff above 1000 us is fixed later on */
+	int32_t err_us = total_err % BLK_PERIOD_US;
+
+	if (err_us > (BLK_PERIOD_US / 2)) {
+		err_us = err_us - BLK_PERIOD_US;
+	}
+
+	/* Restore the sign */
+	if (err_neg) {
+		err_us *= -1;
+	}
+
+	return err_us;
+}
+
 static void hfclkaudio_set(uint16_t freq_value)
 {
 	uint16_t freq_val = freq_value;
@@ -233,11 +271,7 @@ static void audio_datapath_drift_compensation(uint32_t frame_start_ts)
 			return;
 		}
 
-		int32_t err_us = (ctrl_blk.previous_sdu_ref_us - frame_start_ts) % BLK_PERIOD_US;
-
-		if (err_us > (BLK_PERIOD_US / 2)) {
-			err_us = err_us - BLK_PERIOD_US;
-		}
+		int32_t err_us = err_us_calculate(ctrl_blk.previous_sdu_ref_us, frame_start_ts);
 
 		int32_t freq_adj = APLL_FREQ_ADJ(err_us);
 
@@ -255,11 +289,7 @@ static void audio_datapath_drift_compensation(uint32_t frame_start_ts)
 			return;
 		}
 
-		int32_t err_us = (ctrl_blk.previous_sdu_ref_us - frame_start_ts) % BLK_PERIOD_US;
-
-		if (err_us > (BLK_PERIOD_US / 2)) {
-			err_us = err_us - BLK_PERIOD_US;
-		}
+		int32_t err_us = err_us_calculate(ctrl_blk.previous_sdu_ref_us, frame_start_ts);
 
 		/* Use asymptotic correction with small errors */
 		err_us /= 2;
@@ -735,8 +765,7 @@ static void audio_datapath_just_in_time_check_and_adjust(uint32_t sdu_ref_us)
 	static int32_t count;
 	int ret;
 
-	uint32_t curr_frame_ts = nrfx_timer_capture(&audio_sync_timer_instance,
-						    AUDIO_SYNC_TIMER_CURR_TIME_CAPTURE_CHANNEL);
+	uint32_t curr_frame_ts = audio_sync_timer_capture();
 	int diff = curr_frame_ts - sdu_ref_us;
 
 	if (count++ % 100 == 0) {
@@ -779,7 +808,9 @@ static void audio_datapath_sdu_ref_update(const struct zbus_channel *chan)
 			ctrl_blk.previous_sdu_ref_us = sdu_ref_us;
 
 			if (adjust) {
-				audio_datapath_just_in_time_check_and_adjust(sdu_ref_us);
+				if (IS_ENABLED(CONFIG_BT_LL_ACS_NRF53)) {
+					audio_datapath_just_in_time_check_and_adjust(sdu_ref_us);
+				}
 			}
 		} else {
 			LOG_WRN("Stream not startet - Can not update sdu_ref_us");
@@ -955,7 +986,7 @@ void audio_datapath_stream_out(const uint8_t *buf, size_t size, uint32_t sdu_ref
 		LOG_ERR("buf is NULL");
 	}
 
-	if (sdu_ref_us == ctrl_blk.previous_sdu_ref_us) {
+	if (sdu_ref_us == ctrl_blk.previous_sdu_ref_us && sdu_ref_us != 0) {
 		LOG_WRN("Duplicate sdu_ref_us (%d) - Dropping audio frame", sdu_ref_us);
 		return;
 	}
@@ -1009,6 +1040,12 @@ void audio_datapath_stream_out(const uint8_t *buf, size_t size, uint32_t sdu_ref
 
 	if (ret) {
 		LOG_WRN("SW codec decode error: %d", ret);
+	}
+
+	if (IS_ENABLED(CONFIG_SD_CARD_PLAYBACK)) {
+		if (sd_card_playback_is_active()) {
+			sd_card_playback_mix_with_stream(ctrl_blk.decoded_data, pcm_size);
+		}
 	}
 
 	if (pcm_size != (BLK_STEREO_SIZE_OCTETS * NUM_BLKS_IN_FRAME)) {

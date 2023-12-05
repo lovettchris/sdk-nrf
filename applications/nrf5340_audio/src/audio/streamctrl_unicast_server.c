@@ -302,12 +302,12 @@ static int zbus_subscribers_create(void)
 }
 
 /**
- * @brief	Zbus listener to receive events from bt_mgmt
+ * @brief	Zbus listener to receive events from bt_mgmt.
  *
  * @param[in]	chan	Zbus channel.
  *
  * @note	Will in most cases be called from BT_RX context,
- *		so there should not be too much processing done here
+ *		so there should not be too much processing done here.
  */
 static void bt_mgmt_evt_handler(const struct zbus_channel *chan)
 {
@@ -367,7 +367,7 @@ static int zbus_link_producers_observers(void)
 {
 	int ret;
 
-	if (!IS_ENABLED(CONFIG_ZBUS) || (CONFIG_ZBUS_RUNTIME_OBSERVERS_POOL_SIZE <= 0)) {
+	if (!IS_ENABLED(CONFIG_ZBUS)) {
 		return -ENOTSUP;
 	}
 
